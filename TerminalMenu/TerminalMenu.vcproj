@@ -170,6 +170,12 @@
 				RelativePath=".\Main.cpp">
 			</File>
 			<File
+				RelativePath=".\TerminalBuffer.cpp">
+			</File>
+			<File
+				RelativePath=".\TerminalBuffer.h">
+			</File>
+			<File
 				RelativePath=".\Resources.h">
 			</File>
 			<File

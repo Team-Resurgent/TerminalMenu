@@ -1,5 +1,6 @@
 #include "Drawing.h"
 #include "Resources.h"
+#include "TerminalBuffer.h"
 #include <map>
 
 #define SSFN_IMPLEMENTATION
@@ -24,8 +25,6 @@ typedef struct {
     float height;
 } rectf;
 
-#define LINE_HEIGHT 25
-#define SPACING 25
 #define FONT_TEXTURE_DIMENSION 1024
 
 /* One vertex for terminal batch: XYZ + diffuse + UV (matches D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1) */
@@ -35,10 +34,7 @@ struct terminal_vertex_t {
     float u, v;
 };
 
-/* Max terminal size for single draw; 80*40*6 vertices */
-#define TERMINAL_MAX_COLS 80
-#define TERMINAL_MAX_ROWS 40
-#define TERMINAL_MAX_VERTS (TERMINAL_MAX_COLS * TERMINAL_MAX_ROWS * 6)
+#define TERMINAL_MAX_VERTS (TerminalBuffer::Cols * TerminalBuffer::Rows * 6)
 
 namespace
 {
@@ -52,9 +48,6 @@ namespace
     int texture_width;
     int texture_height;
     D3DTexture* font_texture;
-
-    int lineHeight;
-    int spacing;
 
     static terminal_vertex_t s_terminalVerts[TERMINAL_MAX_VERTS];
 }
@@ -173,7 +166,7 @@ void Drawing::GenerateBitmapFont()
         return;
     }
 
-	ssfn_select(mFontContext, SSFN_FAMILY_ANY, "CascadiaCode", SSFN_STYLE_REGULAR, 25);
+	ssfn_select(mFontContext, SSFN_FAMILY_ANY, "CascadiaCode", SSFN_STYLE_REGULAR, 16);
 
 	int textureWidth = FONT_TEXTURE_DIMENSION;
 	int textureHeight = FONT_TEXTURE_DIMENSION; 
@@ -188,8 +181,18 @@ void Drawing::GenerateBitmapFont()
 	int x = 2;
 	int y = 2;
 
-	char* charsToEncode = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-	char* currentCharPos = charsToEncode;
+	const char* charsToEncode =
+		" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+		//"\xE2\x94\x80\xE2\x94\x81\xE2\x94\x82\xE2\x94\x83\xE2\x94\x84\xE2\x94\x85\xE2\x94\x86\xE2\x94\x87\xE2\x94\x88\xE2\x94\x89\xE2\x94\x8A\xE2\x94\x8B\xE2\x94\x8C\xE2\x94\x8D\xE2\x94\x8E\xE2\x94\x8F"
+		//"\xE2\x94\x90\xE2\x94\x91\xE2\x94\x92\xE2\x94\x93\xE2\x94\x94\xE2\x94\x95\xE2\x94\x96\xE2\x94\x97\xE2\x94\x98\xE2\x94\x99\xE2\x94\x9A\xE2\x94\x9B\xE2\x94\x9C\xE2\x94\x9D\xE2\x94\x9E\xE2\x94\x9F"
+		//"\xE2\x94\xA0\xE2\x94\xA1\xE2\x94\xA2\xE2\x94\xA3\xE2\x94\xA4\xE2\x94\xA5\xE2\x94\xA6\xE2\x94\xA7\xE2\x94\xA8\xE2\x94\xA9\xE2\x94\xAA\xE2\x94\xAB\xE2\x94\xAC\xE2\x94\xAD\xE2\x94\xAE\xE2\x94\xAF"
+		//"\xE2\x94\xB0\xE2\x94\xB1\xE2\x94\xB2\xE2\x94\xB3\xE2\x94\xB4\xE2\x94\xB5\xE2\x94\xB6\xE2\x94\xB7\xE2\x94\xB8\xE2\x94\xB9\xE2\x94\xBA\xE2\x94\xBB\xE2\x94\xBC\xE2\x94\xBD\xE2\x94\xBE\xE2\x94\xBF"
+		//"\xE2\x95\x80\xE2\x95\x81\xE2\x95\x82\xE2\x95\x83\xE2\x95\x84\xE2\x95\x85\xE2\x95\x86\xE2\x95\x87\xE2\x95\x88\xE2\x95\x89\xE2\x95\x8A\xE2\x95\x8B\xE2\x95\x8C\xE2\x95\x8D\xE2\x95\x8E\xE2\x95\x8F"
+		//"\xE2\x95\x90\xE2\x95\x91\xE2\x95\x92\xE2\x95\x93\xE2\x95\x94\xE2\x95\x95\xE2\x95\x96\xE2\x95\x97\xE2\x95\x98\xE2\x95\x99\xE2\x95\x9A\xE2\x95\x9B\xE2\x95\x9C\xE2\x95\x9D\xE2\x95\x9E\xE2\x95\x9F"
+		//"\xE2\x95\xA0\xE2\x95\xA1\xE2\x95\xA2\xE2\x95\xA3\xE2\x95\xA4\xE2\x95\xA5\xE2\x95\xA6\xE2\x95\xA7\xE2\x95\xA8\xE2\x95\xA9\xE2\x95\xAA\xE2\x95\xAB\xE2\x95\xAC\xE2\x95\xAD\xE2\x95\xAE\xE2\x95\xAF"
+		//"\xE2\x95\xB0\xE2\x95\xB1\xE2\x95\xB2\xE2\x95\xB3\xE2\x95\xB4\xE2\x95\xB5\xE2\x95\xB6\xE2\x95\xB7\xE2\x95\xB8\xE2\x95\xB9\xE2\x95\xBA\xE2\x95\xBB\xE2\x95\xBC\xE2\x95\xBD\xE2\x95\xBE\xE2\x95\xBF";
+	
+    char* currentCharPos = const_cast<char*>(charsToEncode);
 	while(*currentCharPos)
 	{	
 		char* nextCharPos = currentCharPos;
@@ -255,29 +258,26 @@ void Drawing::ClearBackground()
 	mD3dDevice->Clear(0L, NULL, D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL, 0xff000000, 1.0f, 0L);
 }
 
-void Drawing::DrawTerminal(const char* buffer, int cols, int rows, uint32_t color)
+void Drawing::DrawTerminal(const char* buffer, uint32_t color)
 {
-    if (cols <= 0 || rows <= 0 || cols > TERMINAL_MAX_COLS || rows > TERMINAL_MAX_ROWS)
-    {
-        return;
-    }
-
-    const int cellW = Drawing::GetBufferWidth() / cols;
-    const int cellH = Drawing::GetBufferHeight() / rows;
+    const int cellW = Drawing::GetBufferWidth() / TerminalBuffer::Cols;
+    const int cellH = Drawing::GetBufferHeight() / TerminalBuffer::Rows;
     const float bufH = (float)Drawing::GetBufferHeight();
     const float invDim = 1.0f / (float)FONT_TEXTURE_DIMENSION;
 
     terminal_vertex_t* v = s_terminalVerts;
     int nVerts = 0;
 
-    for (int row = 0; row < rows; row++)
+    for (int row = 0; row < TerminalBuffer::Rows; row++)
     {
-        for (int col = 0; col < cols; col++)
+        for (int col = 0; col < TerminalBuffer::Cols; col++)
         {
-            char c = buffer[row * cols + col];
+            char c = buffer[row * TerminalBuffer::Cols + col];
             std::map<uint32_t, recti>::iterator it = charMap.find((uint32_t)(unsigned char)c);
             if (it == charMap.end())
+            {
                 continue;
+            }
 
             const recti& r = it->second;
             float u0 = r.x * invDim;
@@ -291,12 +291,42 @@ void Drawing::DrawTerminal(const char* buffer, int cols, int rows, uint32_t colo
             float fw = (float)cellW;
             float fh = (float)cellH;
 
-            v[0] = { px + fw, py + fh, pz, color, u1, v0 };
-            v[1] = { px + fw, py,      pz, color, u1, v1 };
-            v[2] = { px,      py,      pz, color, u0, v1 };
-            v[3] = { px + fw, py + fh, pz, color, u1, v0 };
-            v[4] = { px,      py,      pz, color, u0, v1 };
-            v[5] = { px,      py + fh, pz, color, u0, v0 };
+            v[0].x = px + fw;
+            v[0].y = py + fh;
+            v[0].z = pz;
+            v[0].diffuse = color;
+            v[0].u = u1;
+            v[0].v = v0;
+            v[1].x = px + fw;
+            v[1].y = py;
+            v[1].z = pz;
+            v[1].diffuse = color;
+            v[1].u = u1;
+            v[1].v = v1;
+            v[2].x = px;
+            v[2].y = py;
+            v[2].z = pz;
+            v[2].diffuse = color;
+            v[2].u = u0;
+            v[2].v = v1;
+            v[3].x = px + fw;
+            v[3].y = py + fh;
+            v[3].z = pz;
+            v[3].diffuse = color;
+            v[3].u = u1;
+            v[3].v = v0;
+            v[4].x = px;
+            v[4].y = py;
+            v[4].z = pz;
+            v[4].diffuse = color;
+            v[4].u = u0;
+            v[4].v = v1;
+            v[5].x = px;
+            v[5].y = py + fh;
+            v[5].z = pz;
+            v[5].diffuse = color;
+            v[5].u = u0;
+            v[5].v = v0;
             v += 6;
             nVerts += 6;
         }

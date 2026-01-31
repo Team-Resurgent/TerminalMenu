@@ -1,4 +1,5 @@
 #include <xtl.h>
+#include <stdio.h>
 #include <string>
 #include <math.h>
 #include <stdlib.h>
@@ -8,6 +9,7 @@
 #include "InputManager.h"
 #include "External.h"
 #include "Resources.h"
+#include "TerminalBuffer.h"
 #include "ssfn.h"
 
 #include <xgraphics.h>
@@ -45,56 +47,57 @@ DISPLAY_MODE displayModes[] =
 
 #define NUM_MODES (sizeof(displayModes) / sizeof(displayModes[0]))
 
-#define TERMINAL_COLS 80
-#define TERMINAL_ROWS 40
-static char g_terminalBuffer[TERMINAL_ROWS][TERMINAL_COLS];
-
 static void InitTerminalBuffer()
 {
-    for (int row = 0; row < TERMINAL_ROWS; row++)
-        for (int col = 0; col < TERMINAL_COLS; col++)
-            g_terminalBuffer[row][col] = ' ';
+    TerminalBuffer::Clear();
 
-    const char* lines[] = {
-        "                        TERMINAL MENU - 80 x 40                          ",
-        "",
-        "  This screen is a character buffer rendered like a terminal window.     ",
-        "  Each cell is one character in an 80-column by 40-row grid.             ",
-        "",
-        "  Row 6  - You can put menu items, status text, or log output here.     ",
-        "  Row 7  - The buffer is drawn every frame in the main loop.             ",
-        "",
-        "  +------------------------------------------------------------------------+",
-        "  |  Column 0                                                    Column 79 |",
-        "  +------------------------------------------------------------------------+",
-        "",
-        "  Ready.",
-        ""
-    };
-    const int numLines = sizeof(lines) / sizeof(lines[0]);
-    for (int i = 0; i < numLines && i < TERMINAL_ROWS; i++)
+    TerminalBuffer::Write(0, 0, "        TERMINAL MENU - 40 x 30        ", false);
+    TerminalBuffer::Write(0, 1, "+--------------------------------------+", false);
+    TerminalBuffer::Write(0, 2, "|  Row  0  1  2  3 ... 39              |", false);
+    TerminalBuffer::Write(0, 3, "+--------------------------------------+", false);
+    TerminalBuffer::Write(0, 4, "", false);
+
+    for (int row = 5; row < TerminalBuffer::Rows - 2; row++)
     {
-        const char* p = lines[i];
-        int col = 0;
-        while (col < TERMINAL_COLS && *p)
-            g_terminalBuffer[i][col++] = *p++;
+        char line[42];
+        int n = _snprintf(line, sizeof(line), "  Row %2d | 40x30 full screen, row %2d.  ", row, row);
+        if (n > 0)
+        {
+            line[n] = '\0';
+            TerminalBuffer::Write(0, row, line, false);
+        }
     }
+
+    TerminalBuffer::Write(0, TerminalBuffer::Rows - 2, "+--------------------------------------+", false);
+    TerminalBuffer::Write(0, TerminalBuffer::Rows - 1, "  Ready.                                  ", false);
 }
 
 bool SupportsMode(DISPLAY_MODE mode, DWORD dwVideoStandard, DWORD dwVideoFlags)
 {
     if (mode.dwFreq == 60 && !(dwVideoFlags & XC_VIDEO_FLAGS_PAL_60Hz) && (dwVideoStandard == XC_VIDEO_STANDARD_PAL_I))
-		return false;
+    {
+        return false;
+    }
     if (mode.dwFreq == 50 && (dwVideoStandard != XC_VIDEO_STANDARD_PAL_I))
-		return false;
+    {
+        return false;
+    }
     if (mode.dwHeight == 480 && mode.fWideScreen && !(dwVideoFlags & XC_VIDEO_FLAGS_WIDESCREEN ))
-		return false;
+    {
+        return false;
+    }
     if (mode.dwHeight == 480 && mode.fProgressive && !(dwVideoFlags & XC_VIDEO_FLAGS_HDTV_480p))
-		return false;
+    {
+        return false;
+    }
     if (mode.dwHeight == 720 && !(dwVideoFlags & XC_VIDEO_FLAGS_HDTV_720p))
-		return false;
+    {
+        return false;
+    }
     if (mode.dwHeight == 1080 && !(dwVideoFlags & XC_VIDEO_FLAGS_HDTV_1080i))
-		return false;
+    {
+        return false;
+    }
     return true;
 }
 
@@ -105,8 +108,10 @@ bool CreateDevice()
 	uint32_t currentMode;
     for (currentMode = 0; currentMode < NUM_MODES-1; currentMode++)
     {
-		if (SupportsMode(displayModes[currentMode], videoStandard, videoFlags)) 
-			break;
+        if (SupportsMode(displayModes[currentMode], videoStandard, videoFlags))
+        {
+            break;
+        }
     } 
 
 	LPDIRECT3D8 d3d = Direct3DCreate8(D3D_SDK_VERSION);
@@ -183,6 +188,7 @@ void __cdecl main()
 	bool deviceCreated = CreateDevice();
 
 	Drawing::GenerateBitmapFont();
+	
 	InitTerminalBuffer();
 
     while (TRUE)
@@ -192,7 +198,7 @@ void __cdecl main()
 		Drawing::GetD3dDevice()->BeginScene();
 		Drawing::ClearBackground();
 
-		Drawing::DrawTerminal(&g_terminalBuffer[0][0], TERMINAL_COLS, TERMINAL_ROWS, 0xff00ff00);
+		Drawing::DrawTerminal(TerminalBuffer::GetBuffer(), 0xff00ff00);
 
 		Drawing::GetD3dDevice()->EndScene();
 		Drawing::GetD3dDevice()->Present(NULL, NULL, NULL, NULL);

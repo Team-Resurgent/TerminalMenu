@@ -21,5 +21,5 @@ public:
     static void GenerateBitmapFont();
     static void Init();
     static void ClearBackground();
-    static void DrawTerminal(const char* buffer, int cols, int rows, uint32_t color);
+    static void DrawTerminal(const char* buffer, uint32_t color);
 };
