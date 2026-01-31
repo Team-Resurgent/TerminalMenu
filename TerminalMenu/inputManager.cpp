@@ -1,4 +1,4 @@
-#include "inputManager.h"
+#include "InputManager.h"
 
 #include <xtl.h>
 
@@ -12,7 +12,7 @@ namespace
     BYTE mTriggerRightPressure[XGetPortCount()];
 }
 
-void inputManager::processController()
+void InputManager::ProcessController()
 {
 	if (mInitialized == false)
 	{
@@ -138,7 +138,7 @@ void inputManager::processController()
 	}
 }
 
-bool inputManager::buttonDown(JoystickButton button, int port)
+bool InputManager::ButtonDown(JoystickButton button, int port)
 {
 	for (int i = 0; i < XGetPortCount(); i++)
 	{
@@ -220,7 +220,7 @@ bool inputManager::buttonDown(JoystickButton button, int port)
 	return false;
 }
 
-bool inputManager::buttonPressed(JoystickButton button, int port)
+bool InputManager::ButtonPressed(JoystickButton button, int port)
 {
     // Controller processing
 
@@ -305,7 +305,7 @@ bool inputManager::buttonPressed(JoystickButton button, int port)
 	return false;
 }
 
-BYTE inputManager::getLeftTriggerPressure(int port)
+BYTE InputManager::GetLeftTriggerPressure(int port)
 {
     for (int i = 0; i < XGetPortCount(); i++)
     {
@@ -316,7 +316,7 @@ BYTE inputManager::getLeftTriggerPressure(int port)
     return 0;
 }
 
-BYTE inputManager::getRightTriggerPressure(int port)
+BYTE InputManager::GetRightTriggerPressure(int port)
 {
     for (int i = 0; i < XGetPortCount(); i++)
     {

@@ -46,12 +46,12 @@ typedef struct JoystickButtonStates
 	ButtonState buttonRightTrigger;
 } JoystickButtonStates;
 
-class inputManager
+class InputManager
 {
 public:
-	static void processController();
-	static bool buttonDown(JoystickButton button, int port = -1);
-	static bool buttonPressed(JoystickButton button, int port = -1);
-	static BYTE getLeftTriggerPressure(int port = -1);
-	static BYTE getRightTriggerPressure(int port = -1);
+	static void ProcessController();
+	static bool ButtonDown(JoystickButton button, int port = -1);
+	static bool ButtonPressed(JoystickButton button, int port = -1);
+	static BYTE GetLeftTriggerPressure(int port = -1);
+	static BYTE GetRightTriggerPressure(int port = -1);
 };
