@@ -149,40 +149,28 @@
 				RelativePath=".\Debug.h">
 			</File>
 			<File
-				RelativePath=".\drawing.cpp">
+				RelativePath=".\Drawing.cpp">
 			</File>
 			<File
-				RelativePath=".\drawing.h">
-			</File>
-			<File
-				RelativePath=".\context.cpp">
-			</File>
-			<File
-				RelativePath=".\context.h">
+				RelativePath=".\Drawing.h">
 			</File>
 			<File
 				RelativePath=".\External.h">
 			</File>
 			<File
-				RelativePath=".\inputManager.cpp">
+				RelativePath=".\InputManager.cpp">
 			</File>
 			<File
-				RelativePath=".\inputManager.h">
+				RelativePath=".\InputManager.h">
 			</File>
 			<File
 				RelativePath=".\Integers.h">
 			</File>
 			<File
-				RelativePath=".\main.cpp">
+				RelativePath=".\Main.cpp">
 			</File>
 			<File
-				RelativePath=".\math.cpp">
-			</File>
-			<File
-				RelativePath=".\math.h">
-			</File>
-			<File
-				RelativePath=".\resources.h">
+				RelativePath=".\Resources.h">
 			</File>
 			<File
 				RelativePath=".\ssfn.h">
@@ -194,7 +182,7 @@
 					Name="Font"
 					Filter="">
 					<File
-						RelativePath=".\Assets\Font\terminal_sfn.h">
+						RelativePath=".\Assets\Font\Terminal_sfn.h">
 					</File>
 				</Filter>
 			</Filter>

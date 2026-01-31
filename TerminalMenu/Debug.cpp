@@ -1,4 +1,4 @@
-#include "debug.h"
+#include "Debug.h"
 
 #include <xtl.h>
 #include <string>

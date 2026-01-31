@@ -1,6 +1,5 @@
-#include "drawing.h"
-#include "resources.h"
-#include "context.h"
+#include "Drawing.h"
+#include "Resources.h"
 #include <map>
 
 #define SSFN_IMPLEMENTATION
@@ -29,10 +28,24 @@ typedef struct {
 #define SPACING 25
 #define FONT_TEXTURE_DIMENSION 1024
 
+/* One vertex for terminal batch: XYZ + diffuse + UV (matches D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1) */
+struct terminal_vertex_t {
+    float x, y, z;
+    DWORD diffuse;
+    float u, v;
+};
+
+/* Max terminal size for single draw; 80*40*6 vertices */
+#define TERMINAL_MAX_COLS 80
+#define TERMINAL_MAX_ROWS 40
+#define TERMINAL_MAX_VERTS (TERMINAL_MAX_COLS * TERMINAL_MAX_ROWS * 6)
+
 namespace
 {
 	ssfn_t* mFontContext = NULL;
     LPDIRECT3DDEVICE8 mD3dDevice;
+    static DWORD s_bufferWidth;
+    static DWORD s_bufferHeight;
 
     std::map<uint32_t, recti> charMap;
 
@@ -42,17 +55,35 @@ namespace
 
     int lineHeight;
     int spacing;
+
+    static terminal_vertex_t s_terminalVerts[TERMINAL_MAX_VERTS];
 }
 
-void drawing::setD3dDevice(LPDIRECT3DDEVICE8 d3dDevice) {
+void Drawing::SetD3dDevice(LPDIRECT3DDEVICE8 d3dDevice) {
     mD3dDevice = d3dDevice;
 }
 
-LPDIRECT3DDEVICE8 drawing::getD3dDevice() {
+LPDIRECT3DDEVICE8 Drawing::GetD3dDevice() {
     return mD3dDevice;
 }
 
-void drawing::swizzle(const void *src, const uint32_t& depth, const uint32_t& width, const uint32_t& height, void *dest)
+void Drawing::SetBufferWidth(DWORD width) {
+    s_bufferWidth = width;
+}
+
+void Drawing::SetBufferHeight(DWORD height) {
+    s_bufferHeight = height;
+}
+
+DWORD Drawing::GetBufferWidth() {
+    return s_bufferWidth;
+}
+
+DWORD Drawing::GetBufferHeight() {
+    return s_bufferHeight;
+}
+
+void Drawing::Swizzle(const void* src, const uint32_t& depth, const uint32_t& width, const uint32_t& height, void* dest)
 {
   for (UINT y = 0; y < height; y++)
   {
@@ -94,7 +125,7 @@ void drawing::swizzle(const void *src, const uint32_t& depth, const uint32_t& wi
   }
 }
 
-void drawing::createImage(uint8_t* imageData, D3DFORMAT format, int width, int height)
+void Drawing::CreateImage(uint8_t* imageData, D3DFORMAT format, int width, int height)
 {
 	if (FAILED(D3DXCreateTexture(mD3dDevice, width, height, 1, 0, format, D3DPOOL_DEFAULT, &font_texture)))
 	{
@@ -117,13 +148,13 @@ void drawing::createImage(uint8_t* imageData, D3DFORMAT format, int width, int h
 			src += width * 4;
 			dst += surfaceDesc.Width * 4;
 		}
-		swizzle(tempBuffer, 4, surfaceDesc.Width, surfaceDesc.Height, lockedRect.pBits);
+		Swizzle(tempBuffer, 4, surfaceDesc.Width, surfaceDesc.Height, lockedRect.pBits);
 		free(tempBuffer);
 		font_texture->UnlockRect(0);
 	}
 }
 
-void drawing::generateBitmapFont()
+void Drawing::GenerateBitmapFont()
 {
 	if (mFontContext != NULL)
 	{
@@ -142,7 +173,7 @@ void drawing::generateBitmapFont()
         return;
     }
 
-	ssfn_select(mFontContext, SSFN_FAMILY_ANY, "FreeSans", SSFN_STYLE_REGULAR, 25);
+	ssfn_select(mFontContext, SSFN_FAMILY_ANY, "CascadiaCode", SSFN_STYLE_REGULAR, 25);
 
 	int textureWidth = FONT_TEXTURE_DIMENSION;
 	int textureHeight = FONT_TEXTURE_DIMENSION; 
@@ -195,14 +226,14 @@ void drawing::generateBitmapFont()
 
 		ssfn_buf_t buffer; 
 		memset(&buffer, 0, sizeof(buffer));
-		buffer.ptr = (uint8_t*)imageData;       
+		buffer.ptr = (uint8_t*)imageData;
 		buffer.x = x + bounds_x;
 		buffer.y = y + bounds_y;
-		buffer.w = textureWidth;                        
-		buffer.h = textureHeight;                     
-		buffer.p = textureWidth * 4;                          
-		buffer.bg = 0xffffffff;
-		buffer.fg = 0xffffffff;   
+		buffer.w = textureWidth;
+		buffer.h = textureHeight;
+		buffer.p = textureWidth * 4;
+		buffer.bg = 0;                                  /* transparent so texture has proper alpha mask */
+		buffer.fg = 0xffffffff;                         /* white; SSFN writes coverage into alpha */   
 
 		ssfn_render(mFontContext, &buffer, currentChar);
 
@@ -210,87 +241,76 @@ void drawing::generateBitmapFont()
 		free(currentChar);
 	}
 
-	createImage((uint8_t*)imageData, D3DFMT_A8R8G8B8, textureWidth, textureHeight);
+	CreateImage((uint8_t*)imageData, D3DFMT_A8R8G8B8, textureWidth, textureHeight);
 	free(imageData);
 }
 
-void drawing::init()
+void Drawing::Init()
 {
-    generateBitmapFont();
+    GenerateBitmapFont();
 }
 
-void drawing::clearBackground()
+void Drawing::ClearBackground()
 {
-	mD3dDevice->Clear(0L, NULL, D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL, 0xff00ff00, 1.0f, 0L);
+	mD3dDevice->Clear(0L, NULL, D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL, 0xff000000, 1.0f, 0L);
 }
 
-void drawing::drawBitmapString(std::string message, uint32_t color, int x, int y)
+void Drawing::DrawTerminal(const char* buffer, int cols, int rows, uint32_t color)
 {
-    int xPos = x;
-    int yPos = y;
-
-    const char* currentCharPos = message.c_str();
-
-    while (*currentCharPos)
+    if (cols <= 0 || rows <= 0 || cols > TERMINAL_MAX_COLS || rows > TERMINAL_MAX_ROWS)
     {
-        const char* nextCharPos = currentCharPos;
-        uint32_t unicode = ssfn_utf8((char**)&nextCharPos);
-
-        int32_t length = (int32_t)(nextCharPos - currentCharPos);
-        currentCharPos = nextCharPos;
-
-        // Newline handling
-        if (length == 1 && unicode == '\n')
-        {
-            xPos = x;
-            yPos += LINE_HEIGHT;
-            continue;
-        }
-
-        // Lookup glyph (SAFE: no insertion)
-        std::map<uint32_t, recti>::iterator it = charMap.find(unicode);
-        if (it == charMap.end())
-            continue;
-
-        const recti& char_rect = it->second;
-
-        // Build UVs
-        math::rectF uvRect;
-        uvRect.x      = char_rect.x / FONT_TEXTURE_DIMENSION;
-        uvRect.y      = char_rect.y / FONT_TEXTURE_DIMENSION;
-        uvRect.width  = char_rect.width  / FONT_TEXTURE_DIMENSION;
-        uvRect.height = char_rect.height / FONT_TEXTURE_DIMENSION;
-
-        mD3dDevice->SetRenderState(D3DRS_TEXTUREFACTOR, color);
-
-        float newY = (float)(context::getBufferHeight())
-                   - (yPos + char_rect.height);
-
-        mD3dDevice->SetTexture(0, font_texture);
-
-        float px = (float)(xPos) - 0.5f;
-        float py = newY - 0.5f;
-        float pz = 0.0f;
-        float w = (float)(char_rect.width);
-        float h = (float)(char_rect.height);
-        // D3DFVF_XYZ | D3DFVF_TEX1: x, y, z, u, v per vertex (no diffuse)
-        float u0 = uvRect.x, u1 = uvRect.x + uvRect.width;
-        float v0 = uvRect.y, v1 = uvRect.y + uvRect.height;
-        float coords[30] = {
-            px + w, py + h, pz, u1, v0,  /* v3 */
-            px + w, py,     pz, u1, v1,  /* v2 */
-            px,     py,     pz, u0, v1,  /* v1 */
-            px + w, py + h, pz, u1, v0,  /* v3 */
-            px,     py,     pz, u0, v1,  /* v1 */
-            px,     py + h, pz, u0, v0   /* v4 */
-        };
-
-        mD3dDevice->DrawPrimitiveUP(
-            D3DPT_TRIANGLELIST,
-            2,
-            coords,
-            5 * sizeof(float));
-
-        xPos += char_rect.width + SPACING;
+        return;
     }
+
+    const int cellW = Drawing::GetBufferWidth() / cols;
+    const int cellH = Drawing::GetBufferHeight() / rows;
+    const float bufH = (float)Drawing::GetBufferHeight();
+    const float invDim = 1.0f / (float)FONT_TEXTURE_DIMENSION;
+
+    terminal_vertex_t* v = s_terminalVerts;
+    int nVerts = 0;
+
+    for (int row = 0; row < rows; row++)
+    {
+        for (int col = 0; col < cols; col++)
+        {
+            char c = buffer[row * cols + col];
+            std::map<uint32_t, recti>::iterator it = charMap.find((uint32_t)(unsigned char)c);
+            if (it == charMap.end())
+                continue;
+
+            const recti& r = it->second;
+            float u0 = r.x * invDim;
+            float v0 = r.y * invDim;
+            float u1 = (r.x + r.width) * invDim;
+            float v1 = (r.y + r.height) * invDim;
+
+            float px = (float)(col * cellW) - 0.5f;
+            float py = bufH - (float)((row + 1) * cellH) - 0.5f;
+            float pz = 0.0f;
+            float fw = (float)cellW;
+            float fh = (float)cellH;
+
+            v[0] = { px + fw, py + fh, pz, color, u1, v0 };
+            v[1] = { px + fw, py,      pz, color, u1, v1 };
+            v[2] = { px,      py,      pz, color, u0, v1 };
+            v[3] = { px + fw, py + fh, pz, color, u1, v0 };
+            v[4] = { px,      py,      pz, color, u0, v1 };
+            v[5] = { px,      py + fh, pz, color, u0, v0 };
+            v += 6;
+            nVerts += 6;
+        }
+    }
+
+    if (nVerts == 0)
+    {
+        return;
+    }
+
+    mD3dDevice->SetTexture(0, font_texture);
+    mD3dDevice->DrawPrimitiveUP(
+        D3DPT_TRIANGLELIST,
+        nVerts / 3,
+        s_terminalVerts,
+        sizeof(terminal_vertex_t));
 }
