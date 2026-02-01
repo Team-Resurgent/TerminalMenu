@@ -183,7 +183,7 @@ bool CreateDevice()
 
 void __cdecl main()
 {
-	Debug::Print("Welcome to Hermes Menu\n");
+	Debug::Print("Welcome to Terminal Menu\n");
 
 	bool deviceCreated = CreateDevice();
 
