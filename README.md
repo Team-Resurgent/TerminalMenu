@@ -1,6 +1,6 @@
 # TerminalMenu
 
-A terminal-style menu application for the original Xbox. It renders a character buffer (40×30 grid) using Direct3D 8 with a bitmap font, supporting ASCII and Unicode box-drawing characters (U+2500–U+257F).
+A terminal-style menu application for the original Xbox. It renders a character buffer (40×30 grid) using Direct3D 8 with a bitmap font, supporting ASCII and Unicode box-drawing characters.
 
 ## Description
 
