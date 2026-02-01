@@ -166,7 +166,7 @@ void Drawing::GenerateBitmapFont()
         return;
     }
 
-	ssfn_select(mFontContext, SSFN_FAMILY_ANY, "CascadiaCode", SSFN_STYLE_REGULAR, 16);
+	ssfn_select(mFontContext, SSFN_FAMILY_ANY, "CascadiaCode", SSFN_STYLE_REGULAR, 32);
 
 	int textureWidth = FONT_TEXTURE_DIMENSION;
 	int textureHeight = FONT_TEXTURE_DIMENSION; 
@@ -286,7 +286,7 @@ void Drawing::DrawTerminal(const char* buffer, uint32_t color)
             float v1 = (r.y + r.height) * invDim;
 
             float px = (float)(col * cellW) - 0.5f;
-            float py = bufH - (float)((row + 1) * cellH) - 0.5f;
+            float py = bufH - ((float)(row * cellH)) - 0.5f;
             float pz = 0.0f;
             float fw = (float)cellW;
             float fh = (float)cellH;
