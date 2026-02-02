@@ -34,7 +34,7 @@ struct terminal_vertex_t {
     float u, v;
 };
 
-#define TERMINAL_MAX_VERTS (TerminalBuffer::Cols * TerminalBuffer::Rows * 6)
+#define TERMINAL_MAX_VERTS (255 * 255 * 6)
 
 namespace
 {
@@ -260,19 +260,19 @@ void Drawing::ClearBackground()
 
 void Drawing::DrawTerminal(const char* buffer, uint32_t color)
 {
-    const int cellW = Drawing::GetBufferWidth() / TerminalBuffer::Cols;
-    const int cellH = Drawing::GetBufferHeight() / TerminalBuffer::Rows;
+    const int cellW = 16;
+    const int cellH = 16;
     const float bufH = (float)Drawing::GetBufferHeight();
     const float invDim = 1.0f / (float)FONT_TEXTURE_DIMENSION;
 
     terminal_vertex_t* v = s_terminalVerts;
     int nVerts = 0;
 
-    for (int row = 0; row < TerminalBuffer::Rows; row++)
+    for (int row = 0; row < TerminalBuffer::GetRows(); row++)
     {
-        for (int col = 0; col < TerminalBuffer::Cols; col++)
+        for (int col = 0; col < TerminalBuffer::GetCols(); col++)
         {
-            char c = buffer[row * TerminalBuffer::Cols + col];
+            char c = buffer[row * 255 + col];
             std::map<uint32_t, recti>::iterator it = charMap.find((uint32_t)(unsigned char)c);
             if (it == charMap.end())
             {

@@ -51,25 +51,27 @@ static void InitTerminalBuffer()
 {
     TerminalBuffer::Clear();
 
-    TerminalBuffer::Write(0, 0, "        TERMINAL MENU - 40 x 30        ", false);
-    TerminalBuffer::Write(0, 1, "+--------------------------------------+", false);
-    TerminalBuffer::Write(0, 2, "|  Row  0  1  2  3 ... 39              |", false);
-    TerminalBuffer::Write(0, 3, "+--------------------------------------+", false);
-    TerminalBuffer::Write(0, 4, "", false);
+    int cols = TerminalBuffer::GetCols();
 
-    for (int row = 5; row < TerminalBuffer::Rows - 2; row++)
+    TerminalBuffer::Write(0, 0, "+--------------------------------------+");
+    TerminalBuffer::Write(0, 1, "|  Row  0  1  2  3 ... 39              |");
+    TerminalBuffer::Write(0, 2, "+--------------------------------------+");
+    TerminalBuffer::Write(0, 3, "TERMINAL MENU - %i x %i", TerminalBuffer::GetCols(), TerminalBuffer::GetRows());
+    TerminalBuffer::Write(0, 4, "");
+
+    for (int row = 5; row < TerminalBuffer::GetRows() - 2; row++)
     {
         char line[42];
         int n = _snprintf(line, sizeof(line), "  Row %2d | 40x30 full screen, row %2d.  ", row, row);
         if (n > 0)
         {
             line[n] = '\0';
-            TerminalBuffer::Write(0, row, line, false);
+            TerminalBuffer::Write(0, row, line);
         }
     }
 
-    TerminalBuffer::Write(0, TerminalBuffer::Rows - 2, "+--------------------------------------+", false);
-    TerminalBuffer::Write(0, TerminalBuffer::Rows - 1, "  Ready.                                  ", false);
+    TerminalBuffer::Write(0, TerminalBuffer::GetRows() - 2, "+--------------------------------------+");
+    TerminalBuffer::Write(0, TerminalBuffer::GetRows() - 1, "  Ready.                                  ");
 }
 
 bool SupportsMode(DISPLAY_MODE mode, DWORD dwVideoStandard, DWORD dwVideoFlags)
@@ -121,8 +123,8 @@ bool CreateDevice()
         return false;
 	}
 
-	Drawing::SetBufferWidth(720);
-	Drawing::SetBufferHeight(480);
+	Drawing::SetBufferWidth(displayModes[currentMode].dwWidth);
+	Drawing::SetBufferHeight(displayModes[currentMode].dwHeight);
 
 	D3DPRESENT_PARAMETERS params; 
     ZeroMemory(&params, sizeof(params));
@@ -183,7 +185,7 @@ bool CreateDevice()
 
 void __cdecl main()
 {
-	Debug::Print("Welcome to Hermes Menu\n");
+	Debug::Print("Welcome to Terminal Menu\n");
 
 	bool deviceCreated = CreateDevice();
 
