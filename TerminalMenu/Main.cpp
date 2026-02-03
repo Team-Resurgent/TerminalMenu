@@ -201,9 +201,6 @@ void __cdecl main()
 
 	InitTerminalBuffer();
 
-    while(true)
-    {
-    };
-    //WaitButton(ControllerA);
+    WaitButton(ControllerA);
     HalReturnToFirmware(2);
 }

@@ -2,9 +2,6 @@
 
 #include "External.h"
 
-#include <string>
-#include <map>
-
 class Drawing
 {
 public:
