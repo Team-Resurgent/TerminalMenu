@@ -4,13 +4,23 @@
 
 #include <string>
 
+#define TERMINAL_FONT_SIZE_WIDTH 8
+#define TERMINAL_FONT_SIZE_HEIGHT 16
+#define TERMINAL_MAX_COLS 255
+#define TERMINAL_MAX_ROWS 255
+#define TERMINAL_MAX_VERTS (TERMINAL_MAX_ROWS * TERMINAL_MAX_COLS * 6)
+
 class TerminalBuffer
 {
 public:
+    static void Init();
     static void Clear();
-    static void Write(int x, int y, std::string message, ...);
+    static void SetCursor(int x, int y);
+    static void Write(std::string message, ...);
     static void ScrollUp();
     static const char* GetBuffer();
     static int GetCols();
     static int GetRows();
+    static int GetCursorX();
+    static int GetCursorY();
 };

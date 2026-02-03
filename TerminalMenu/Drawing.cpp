@@ -34,8 +34,6 @@ struct terminal_vertex_t {
     float u, v;
 };
 
-#define TERMINAL_MAX_VERTS (255 * 255 * 6)
-
 namespace
 {
 	ssfn_t* mFontContext = NULL;
@@ -253,15 +251,10 @@ void Drawing::Init()
     GenerateBitmapFont();
 }
 
-void Drawing::ClearBackground()
-{
-	mD3dDevice->Clear(0L, NULL, D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL, 0xff000000, 1.0f, 0L);
-}
-
 void Drawing::DrawTerminal(const char* buffer, uint32_t color)
 {
-    const int cellW = 16;
-    const int cellH = 16;
+    const int cellW = TERMINAL_FONT_SIZE_WIDTH;
+    const int cellH = TERMINAL_FONT_SIZE_HEIGHT;
     const float bufH = (float)Drawing::GetBufferHeight();
     const float invDim = 1.0f / (float)FONT_TEXTURE_DIMENSION;
 
@@ -272,7 +265,7 @@ void Drawing::DrawTerminal(const char* buffer, uint32_t color)
     {
         for (int col = 0; col < TerminalBuffer::GetCols(); col++)
         {
-            char c = buffer[row * 255 + col];
+            char c = buffer[(row * TerminalBuffer::GetCols()) + col];
             std::map<uint32_t, recti>::iterator it = charMap.find((uint32_t)(unsigned char)c);
             if (it == charMap.end())
             {
@@ -286,7 +279,7 @@ void Drawing::DrawTerminal(const char* buffer, uint32_t color)
             float v1 = (r.y + r.height) * invDim;
 
             float px = (float)(col * cellW) - 0.5f;
-            float py = bufH - ((float)(row * cellH)) - 0.5f;
+            float py = bufH - ((float)((row + 1)  * cellH)) - 0.5f;
             float pz = 0.0f;
             float fw = (float)cellW;
             float fh = (float)cellH;
@@ -337,10 +330,16 @@ void Drawing::DrawTerminal(const char* buffer, uint32_t color)
         return;
     }
 
+    mD3dDevice->BeginScene();
+    mD3dDevice->Clear(0L, NULL, D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL, 0xff000000, 1.0f, 0L);
+
     mD3dDevice->SetTexture(0, font_texture);
     mD3dDevice->DrawPrimitiveUP(
         D3DPT_TRIANGLELIST,
         nVerts / 3,
         s_terminalVerts,
         sizeof(terminal_vertex_t));
+
+    mD3dDevice->EndScene();
+	mD3dDevice->Present(NULL, NULL, NULL, NULL);
 }

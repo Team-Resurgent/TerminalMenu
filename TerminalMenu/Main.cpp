@@ -53,25 +53,19 @@ static void InitTerminalBuffer()
 
     int cols = TerminalBuffer::GetCols();
 
-    TerminalBuffer::Write(0, 0, "+--------------------------------------+");
-    TerminalBuffer::Write(0, 1, "|  Row  0  1  2  3 ... 39              |");
-    TerminalBuffer::Write(0, 2, "+--------------------------------------+");
-    TerminalBuffer::Write(0, 3, "TERMINAL MENU - %i x %i", TerminalBuffer::GetCols(), TerminalBuffer::GetRows());
-    TerminalBuffer::Write(0, 4, "");
+    TerminalBuffer::Write("+--------------------------------------+\n");
+    TerminalBuffer::Write("|  Row  0  1  2  3 ... 39              |\n");
+    TerminalBuffer::Write("+--------------------------------------+\n");
+    TerminalBuffer::Write("TERMINAL MENU - %i x %i\n", TerminalBuffer::GetCols(), TerminalBuffer::GetRows());
+    TerminalBuffer::Write("");
 
     for (int row = 5; row < TerminalBuffer::GetRows() - 2; row++)
     {
-        char line[42];
-        int n = _snprintf(line, sizeof(line), "  Row %2d | 40x30 full screen, row %2d.  ", row, row);
-        if (n > 0)
-        {
-            line[n] = '\0';
-            TerminalBuffer::Write(0, row, line);
-        }
+        TerminalBuffer::Write("  Row %2d | some contents of this row.\n", row);
     }
 
-    TerminalBuffer::Write(0, TerminalBuffer::GetRows() - 2, "+--------------------------------------+");
-    TerminalBuffer::Write(0, TerminalBuffer::GetRows() - 1, "  Ready.                                  ");
+    TerminalBuffer::Write("+--------------------------------------+\n");
+    TerminalBuffer::Write("Press A to exit...\n");
 }
 
 bool SupportsMode(DISPLAY_MODE mode, DWORD dwVideoStandard, DWORD dwVideoFlags)
@@ -183,6 +177,19 @@ bool CreateDevice()
 	return true;
 }
 
+static void WaitButton(ControllerButton controllerButton)
+{
+	while (true)
+	{
+		InputManager::ProcessController();
+        if (InputManager::ControllerPressed(controllerButton, -1))
+		{
+			return;
+		}
+		Sleep(100);
+	}
+}
+
 void __cdecl main()
 {
 	Debug::Print("Welcome to Terminal Menu\n");
@@ -190,19 +197,13 @@ void __cdecl main()
 	bool deviceCreated = CreateDevice();
 
 	Drawing::GenerateBitmapFont();
-	
+    InputManager::Init();
+
 	InitTerminalBuffer();
 
-    while (TRUE)
+    while(true)
     {
-		InputManager::ProcessController();
-
-		Drawing::GetD3dDevice()->BeginScene();
-		Drawing::ClearBackground();
-
-		Drawing::DrawTerminal(TerminalBuffer::GetBuffer(), 0xff00ff00);
-
-		Drawing::GetD3dDevice()->EndScene();
-		Drawing::GetD3dDevice()->Present(NULL, NULL, NULL, NULL);
-    }
+    };
+    //WaitButton(ControllerA);
+    HalReturnToFirmware(2);
 }

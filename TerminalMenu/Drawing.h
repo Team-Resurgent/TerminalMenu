@@ -20,6 +20,5 @@ public:
     static void CreateImage(uint8_t* imageData, D3DFORMAT format, int width, int height);
     static void GenerateBitmapFont();
     static void Init();
-    static void ClearBackground();
     static void DrawTerminal(const char* buffer, uint32_t color);
 };
